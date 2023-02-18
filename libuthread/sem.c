@@ -48,14 +48,14 @@ int sem_down(sem_t sem)
 	preempt_disable();
 	while (sem->numOfResources == 0)
 	{
-		printf("semdown here\n");
+		//printf("semdown here\n");
 		struct uthread_tcb *currentThread = uthread_current();
 		queue_enqueue(sem->blockQueue, currentThread);
 		uthread_block();
 	}
 	sem->numOfResources--;
 	preempt_enable();
-	printf("semcount: %lu\n", sem->numOfResources);
+	//printf("semcount: %lu\n", sem->numOfResources);
 	return 0;
 }
 
@@ -71,13 +71,13 @@ int sem_up(sem_t sem)
 		int result = queue_dequeue(sem->blockQueue, &tempData);
 		if (result == 0)
 		{
-			printf("semup here\n");
+			//printf("semup here\n");
 			struct uthread_tcb *convertedData = (struct uthread_tcb *)tempData;
-			printf("semup after\n");
+			//printf("semup after\n");
 			uthread_unblock(convertedData);
 		}
 	sem->numOfResources++;
 	preempt_enable();
-	printf("semcount: %lu\n", sem->numOfResources);
+	//printf("semcount: %lu\n", sem->numOfResources);
 	return 0;
 }
