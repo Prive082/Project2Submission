@@ -13,7 +13,9 @@
 /*
  * Frequency of preemption
  * 100Hz is 100 times per second
+ * Preemption period in usec is USEC_PER_SEC / HZ
  */
+#define USEC_PER_SEC 1000000
 #define HZ 100
 
 void timer_handler(int signum)
@@ -47,6 +49,10 @@ void preempt_enable(void)
 void preempt_start(bool preempt)
 {
 	/* TODO Phase 4 */
+	if (preempt == false)
+	{
+		return;
+	}
 	struct sigaction sa;
 	struct itimerval timer;
 
@@ -56,25 +62,13 @@ void preempt_start(bool preempt)
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
 	sigaction(SIGVTALRM, &sa, NULL);
-	if (preempt == true)
-	{
-		// We multiply because we need 100 HZ in MICROseconds
-		// Counts down from 100ms
-		timer.it_value.tv_usec = HZ * 1000;
-		// and repeats every time after
-		timer.it_interval.tv_usec = HZ * 1000;
-		// start timer and count down when executing
-		setitimer(ITIMER_VIRTUAL, &timer, NULL);
-
-		// busy work
-		timer_handler(SIGVTALRM);
-	}
-	else if (preempt == false)
-	{
-		return;
-	}
-
-	return;
+	// Counts down from 100ms
+	timer.it_value.tv_usec = USEC_PER_SEC / HZ;
+	// and repeats every time after
+	timer.it_interval.tv_usec = USEC_PER_SEC / HZ;
+	// start timer and count down when executing
+	setitimer(ITIMER_VIRTUAL, &timer, NULL);
+	
 }
 
 void preempt_stop(void)
