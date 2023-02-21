@@ -84,3 +84,35 @@ be used to free the associated memory of these threads.
 
 #### Functions
 
+`int uthread_create(uthread_func_t func, void *arg)`
+This function accepts the pointer to the user defined function `func` along
+with the function's argument `arg`, which together consists the code of a
+thread. This function will create a `uthread_tcb` for the new thread, schedule
+the thread for execution by calling the function `uthread_ctx_init` and store
+the thread in `uthreadQueue`. 
+
+`void uthread_yield(void)`
+This function yields the currently executing thread by calling the function
+`uthread_ctx_switch` to perform context switch between the current thread and
+the new thread dequeued from the `uthreadQueue`. While performing the context
+switch, the new thread will replace the previous thread as the `currentThread`,
+and the previous thread will be enqueued back to the `uthreadQueue`, waiting to
+be scheduled in the future.
+
+`void uthread_exit(void)`
+This function performs context switch in the same way as `uthread_yield`,
+except that the previous thread will be enqueued into `deleteQueue`, since
+calling exit means the thread should not be scheduled in the future. 
+
+`int uthread_run(bool preempt, uthread_func_t func, void *arg)`
+The execution of this function marks the lifecycle of the multithreaded
+program, therefore all other functions in the uthread library should be called
+within the threads that will be scheduled during the lifecycle. This function
+allocates memory for the `uthreadQueue` and `deleteQueue`, and it creates an
+idle thread that marks the execution context of `uthread_run` function itself
+and store the thread in the variable `currentThread`. The function then creates
+the context for the first thread defined by the arguments `func` and `arg`,
+and then it enters a infinite loop in which it will yield to any threads
+remaining in `uthreadQueue`. The loop is also responsible for cleaning the
+threads in the `deleteQueue`. The function will exit after the threads have
+finished execution.
