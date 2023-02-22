@@ -13,6 +13,7 @@
 #define RUNNING 3
 #define READY 4
 #define BLOCKED 5
+#define FINISHED 6
 
 struct uthread_tcb
 {
@@ -22,7 +23,6 @@ struct uthread_tcb
 };
 
 queue_t waitingQueue;
-queue_t blockQueue;
 queue_t deleteQueue;
 struct uthread_tcb *currentThread;
 
@@ -36,6 +36,7 @@ void context_switch(struct uthread_tcb *nextTcb)
 {
 	struct uthread_tcb *tempCurrentThread = currentThread;
 	currentThread = nextTcb;
+	currentThread->state = RUNNING;
 	uthread_ctx_t *prevCtx = &tempCurrentThread->context;
 	uthread_ctx_t *nextCtx = &nextTcb->context;
 	uthread_ctx_switch(prevCtx, nextCtx);
@@ -53,6 +54,7 @@ void uthread_yield(void)
 	preempt_disable();
 	queue_dequeue(waitingQueue, &data);
 	struct uthread_tcb *nextThread = (struct uthread_tcb *)data;
+	currentThread->state = READY;
 	queue_enqueue(waitingQueue, currentThread);
 	context_switch(nextThread);
 	preempt_enable();
@@ -65,6 +67,7 @@ void uthread_exit(void)
 	preempt_disable();
 	queue_dequeue(waitingQueue, &data);
 	struct uthread_tcb *nextThread = (struct uthread_tcb *)data;
+	currentThread->state = FINISHED;
 	queue_enqueue(deleteQueue, currentThread);
 	context_switch(nextThread);
 	preempt_enable();
@@ -73,10 +76,13 @@ void uthread_exit(void)
 int uthread_create(uthread_func_t func, void *arg)
 {
 	/* TODO Phase 2 */
+	preempt_disable();
 	void *stackTop = uthread_ctx_alloc_stack();
 	struct uthread_tcb *tcb = malloc(sizeof(struct uthread_tcb));
+	tcb->state = READY;
 	queue_enqueue(waitingQueue, tcb);
 	uthread_ctx_init(&tcb->context, stackTop, func, arg);
+	preempt_enable();
 	return 0;
 }
 
@@ -85,10 +91,10 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 	/* TODO Phase 2 */
 	// ininialize thread queue and main thread
 	waitingQueue = queue_create();
-	blockQueue = queue_create();
 	deleteQueue = queue_create();
 	struct uthread_tcb *idleTcb = malloc(sizeof(struct uthread_tcb));
 	currentThread = idleTcb;
+	currentThread->state = RUNNING;
 
 	// initialize first thread
 	uthread_create(func, arg);
@@ -109,7 +115,6 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 		if (queue_length(waitingQueue) == 0)
 		{
 			queue_destroy(waitingQueue);
-			queue_destroy(blockQueue);
 			queue_destroy(deleteQueue);
 			preempt_stop();
 			return 0;
@@ -126,6 +131,7 @@ void uthread_block(void)
 	preempt_disable();
 	queue_dequeue(waitingQueue, &data);
 	struct uthread_tcb *nextThread = (struct uthread_tcb *)data;
+	currentThread->state = BLOCKED;
 	context_switch(nextThread);
 	preempt_enable();
 	return;
@@ -135,6 +141,7 @@ void uthread_unblock(struct uthread_tcb *uthread)
 {
 	/* TODO Phase 3 */
 	queue_enqueue(waitingQueue, uthread);
+	uthread->state = READY;
 	// take from waititng queue and reinsert into the waiting queue
 	return;
 }
