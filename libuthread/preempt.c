@@ -18,6 +18,9 @@
 #define USEC_PER_SEC 1000000
 #define HZ 100
 
+struct sigaction sa_old;
+struct itimerval timer_old;
+
 void timer_handler(int signum)
 {
 	if (signum == SIGVTALRM)
@@ -58,29 +61,25 @@ void preempt_start(bool preempt)
 
 	// set up alarm handler
 	memset(&sa, 0, sizeof(sa));
+	memset(&timer, 0, sizeof(timer));
 	sa.sa_handler = &timer_handler;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
-	sigaction(SIGVTALRM, &sa, NULL);
+	sigaction(SIGVTALRM, &sa, &sa_old);
 	// Counts down from 100ms
 	timer.it_value.tv_usec = USEC_PER_SEC / HZ;
 	// and repeats every time after
 	timer.it_interval.tv_usec = USEC_PER_SEC / HZ;
 	// start timer and count down when executing
-	setitimer(ITIMER_VIRTUAL, &timer, NULL);
+	setitimer(ITIMER_VIRTUAL, &timer, &timer_old);
 	
 }
 
 void preempt_stop(void)
 {
-	struct sigaction sigReset;
-	struct itimerval timerReset;
-	/* TODO Phase 4 */
-	sigReset.sa_handler = SIG_DFL;
-	sigaction(SIGVTALRM, &sigReset, NULL);
 
-	timerReset.it_value.tv_usec = 0;
-	// and repeats every time after
-	timerReset.it_interval.tv_usec = 0;
-	setitimer(ITIMER_VIRTUAL, &timerReset, NULL);
+	/* TODO Phase 4 */
+	sigaction(SIGVTALRM, &sa_old, NULL);
+
+	setitimer(ITIMER_VIRTUAL, &timer_old, NULL);
 }
