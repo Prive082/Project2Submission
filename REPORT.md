@@ -75,11 +75,11 @@ will pause its execution while the next thread resumes execution.
 #### Data structure
 
 The uthread library uses `struct uthread_tcb` to store needed information about
-a thread that's created. The library uses the queue `uthreadQueue` to store all
+a thread that's created. The library uses the queue `waitingQueue` to store all
 the threads that are waiting to be executed. The FIFO scheduling order is
-implemented by enqueuing the `uthread_tcb` into `uthreadQueue` when a thread is
-created, and dequeuing the `uthread_tcb` from `uthreadQueue` when executing the
-thread. `uthreadQueue` is made as a global variable because it needs to be
+implemented by enqueuing the `uthread_tcb` into `waitingQueue` when a thread is
+created, and dequeuing the `uthread_tcb` from `waitingQueue` when executing the
+thread. `waitingQueue` is made as a global variable because it needs to be
 accessed by all other functions in the library.
 
 Similarly, there's also the global variable `currentThread` that stores the
@@ -94,14 +94,14 @@ This function accepts the pointer to the user defined function `func` along
 with the function's argument `arg`, which together consists the code of a
 thread. This function will create a `uthread_tcb` for the new thread, schedule
 the thread for execution by calling the function `uthread_ctx_init` and store
-the thread in `uthreadQueue`. 
+the thread in `waitingQueue`. 
 
 `void uthread_yield(void)`
 This function yields the currently executing thread by calling the function
 `uthread_ctx_switch` to perform context switch between the current thread and
-the new thread dequeued from the `uthreadQueue`. While performing the context
+the new thread dequeued from the `waitingQueue`. While performing the context
 switch, the new thread will replace the previous thread as the `currentThread`,
-and the previous thread will be enqueued back to the `uthreadQueue`, waiting to
+and the previous thread will be enqueued back to the `waitingQueue`, waiting to
 be scheduled in the future.
 
 `void uthread_exit(void)`
@@ -113,12 +113,12 @@ calling exit means the thread should not be scheduled in the future.
 The execution of this function marks the lifecycle of the multithreaded
 program, therefore all other functions in the uthread library should be called
 within the threads that will be scheduled during the lifecycle. This function
-allocates memory for the `uthreadQueue` and `deleteQueue`, and it creates an
+allocates memory for the `waitingQueue` and `deleteQueue`, and it creates an
 idle thread that marks the execution context of `uthread_run` function itself
 and store the thread in the variable `currentThread`. The function then creates
 the context for the first thread defined by the arguments `func` and `arg`,
 and then it enters a infinite loop in which it will yield to any threads
-remaining in `uthreadQueue`. The loop is also responsible for cleaning the
+remaining in `waitingQueue`. The loop is also responsible for cleaning the
 threads in the `deleteQueue`. The function will exit after the threads have
 finished execution.
 

@@ -21,7 +21,7 @@ struct uthread_tcb
 	int state;
 };
 
-queue_t uthreadQueue;
+queue_t waitingQueue;
 queue_t blockQueue;
 queue_t deleteQueue;
 struct uthread_tcb *currentThread;
@@ -51,9 +51,9 @@ void uthread_yield(void)
 	/* TODO Phase 2 */
 	void *data;
 	preempt_disable();
-	queue_dequeue(uthreadQueue, &data);
+	queue_dequeue(waitingQueue, &data);
 	struct uthread_tcb *nextThread = (struct uthread_tcb *)data;
-	queue_enqueue(uthreadQueue, currentThread);
+	queue_enqueue(waitingQueue, currentThread);
 	context_switch(nextThread);
 	preempt_enable();
 }
@@ -63,7 +63,7 @@ void uthread_exit(void)
 	/* TODO Phase 2 */
 	void *data;
 	preempt_disable();
-	queue_dequeue(uthreadQueue, &data);
+	queue_dequeue(waitingQueue, &data);
 	struct uthread_tcb *nextThread = (struct uthread_tcb *)data;
 	queue_enqueue(deleteQueue, currentThread);
 	context_switch(nextThread);
@@ -75,7 +75,7 @@ int uthread_create(uthread_func_t func, void *arg)
 	/* TODO Phase 2 */
 	void *stackTop = uthread_ctx_alloc_stack();
 	struct uthread_tcb *tcb = malloc(sizeof(struct uthread_tcb));
-	queue_enqueue(uthreadQueue, tcb);
+	queue_enqueue(waitingQueue, tcb);
 	uthread_ctx_init(&tcb->context, stackTop, func, arg);
 	return 0;
 }
@@ -84,7 +84,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 {
 	/* TODO Phase 2 */
 	// ininialize thread queue and main thread
-	uthreadQueue = queue_create();
+	waitingQueue = queue_create();
 	blockQueue = queue_create();
 	deleteQueue = queue_create();
 	struct uthread_tcb *idleTcb = malloc(sizeof(struct uthread_tcb));
@@ -106,9 +106,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 			freeTcb(deleteThread);
 		}
 		// check if only idle thread is left
-		if (queue_length(uthreadQueue) == 0)
+		if (queue_length(waitingQueue) == 0)
 		{
-			queue_destroy(uthreadQueue);
+			queue_destroy(waitingQueue);
 			queue_destroy(blockQueue);
 			queue_destroy(deleteQueue);
 			preempt_stop();
@@ -124,7 +124,7 @@ void uthread_block(void)
 	// hold thread in blocked waiting queue
 	void *data;
 	preempt_disable();
-	queue_dequeue(uthreadQueue, &data);
+	queue_dequeue(waitingQueue, &data);
 	struct uthread_tcb *nextThread = (struct uthread_tcb *)data;
 	context_switch(nextThread);
 	preempt_enable();
@@ -134,7 +134,7 @@ void uthread_block(void)
 void uthread_unblock(struct uthread_tcb *uthread)
 {
 	/* TODO Phase 3 */
-	queue_enqueue(uthreadQueue, uthread);
+	queue_enqueue(waitingQueue, uthread);
 	// take from waititng queue and reinsert into the waiting queue
 	return;
 }
