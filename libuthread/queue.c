@@ -6,6 +6,8 @@
 #include "queue.h"
 
 // implementing a doubly linked list as it has enqueue and dequeue O(1) time
+/*reference for doubly linked list: 
+https://www.simplilearn.com/tutorials/c-tutorial/doubly-linked-list-in-c#:~:text=Doubly%20Linked%20Lists%20in%20C,both%20forward%20and%20backward%20directions.*/
 struct queueNode
 {
 	/* TODO Phase 1 */
@@ -108,14 +110,16 @@ int queue_delete(queue_t queue, void *data)
 {
 	if (data == NULL || queue == NULL)
 		return -1;
-	struct queueNode* current = queue->head;
-	struct queueNode* prev;
+	struct queueNode *current = queue->head;
+	struct queueNode *prev;
 	if (current != NULL && current->data == data)
 	{
 		queue->head = current->next;
 		free(current);
 		if (queue->head == NULL)
-		        queue->tail = NULL;
+		{
+			queue->tail = NULL;
+		}
 	}
 	else
 	{
@@ -125,11 +129,13 @@ int queue_delete(queue_t queue, void *data)
 			current = current->next;
 		}
 		if (current == NULL)
+		{
 			return -1;
-		prev->next = current->next; 
+		}
+		prev->next = current->next;
 		free(current);
 	}
-	queue->queueLen--; 
+	queue->queueLen--;
 	return 0;
 }
 
