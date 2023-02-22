@@ -99,7 +99,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 	// initialize first thread
 	uthread_create(func, arg);
 	preempt_start(preempt);
-	// The "infinite loop" part that phase 2 describes, probably shoud put all uthread_ctx_init in this loop
+	
 	while (1)
 	{
 		// clean the delete queue
